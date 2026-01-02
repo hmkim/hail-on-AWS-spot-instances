@@ -96,14 +96,94 @@ chmod 400 my-key.pem
 
 ### c) Required IAM Roles
 
-Ensure the following EMR service roles exist in your AWS account:
-- `EMR_DefaultRole`
-- `EMR_EC2_DefaultRole`
-- `EMR_AutoScaling_DefaultRole`
+EMR requires specific IAM roles for cluster operation. The easiest way to create them is:
 
-If these roles don't exist, create them with:
 ```bash
 aws emr create-default-roles
+```
+
+This creates the following roles with AWS managed policies:
+
+| Role | Policy | Purpose |
+|------|--------|---------|
+| `EMR_DefaultRole` | `AmazonEMRServicePolicy_v2` | EMR service role for provisioning resources |
+| `EMR_EC2_DefaultRole` | `AmazonElasticMapReduceforEC2Role` | Role for EC2 instances in the cluster |
+| `EMR_AutoScaling_DefaultRole` | `AmazonElasticMapReduceforAutoScalingRole` | Role for auto-scaling operations |
+
+#### IAM User Permissions
+
+Your IAM user (used with `aws configure`) needs the following permissions:
+
+**Option 1: AWS Managed Policy (Recommended for testing)**
+- `AmazonEMRFullAccessPolicy_v2` - Full EMR access
+- `AmazonS3FullAccess` - S3 access for logs and data
+- `AmazonEC2FullAccess` - EC2 access for instances
+
+**Option 2: Custom Policy (Recommended for production)**
+
+Create a custom IAM policy with minimum required permissions:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "EMRAccess",
+            "Effect": "Allow",
+            "Action": [
+                "elasticmapreduce:RunJobFlow",
+                "elasticmapreduce:DescribeCluster",
+                "elasticmapreduce:ListClusters",
+                "elasticmapreduce:ListInstances",
+                "elasticmapreduce:TerminateJobFlows",
+                "elasticmapreduce:AddJobFlowSteps"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "EC2Access",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeInstances",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeKeyPairs"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "S3Access",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:ListBucket",
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-bucket-name",
+                "arn:aws:s3:::your-bucket-name/*"
+            ]
+        },
+        {
+            "Sid": "IAMPassRole",
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": [
+                "arn:aws:iam::*:role/EMR_DefaultRole",
+                "arn:aws:iam::*:role/EMR_EC2_DefaultRole",
+                "arn:aws:iam::*:role/EMR_AutoScaling_DefaultRole"
+            ]
+        }
+    ]
+}
+```
+
+Verify roles exist:
+```bash
+aws iam get-role --role-name EMR_DefaultRole
+aws iam get-role --role-name EMR_EC2_DefaultRole
 ```
 
 ## How to Use This CloudFormation Tool
@@ -111,7 +191,7 @@ aws emr create-default-roles
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/hms-dbmi/hail-on-AWS-spot-instances
+git clone -b dev https://github.com/hmkim/hail-on-AWS-spot-instances
 cd hail-on-AWS-spot-instances/src
 ```
 
