@@ -7,15 +7,31 @@ from collections import OrderedDict
 import json
 
 import bokeh
-from bokeh.layouts import gridplot, row, widgetbox
+import warnings
+from bokeh.layouts import gridplot, row
 from bokeh.plotting import figure, show, output_file
-from bokeh.io import output_notebook, push_notebook, export_png
-from bokeh.models.widgets import Tabs, Panel
+from bokeh.io import output_notebook, push_notebook
+from bokeh.models import Tabs, Panel
 from bokeh.palettes import *
 from bokeh.models import *
 from typing import *
-from bokeh.plotting.helpers import stack
 from bokeh.transform import factor_cmap, transform
+
+# Compatibility: try to import deprecated modules, suppress warnings if not found
+try:
+    from bokeh.layouts import widgetbox
+except ImportError:
+    widgetbox = None
+
+try:
+    from bokeh.io import export_png
+except ImportError:
+    export_png = None
+
+try:
+    from bokeh.plotting.helpers import stack
+except ImportError:
+    from bokeh.transform import stack
 
 
 def plot_hail_hist(hist_data: hl.Struct,

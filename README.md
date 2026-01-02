@@ -1,189 +1,278 @@
-# Hail on Amazon EMR: `cloudformation` tool with spot instances
+# Hail on Amazon EMR: CloudFormation Tool with Spot Instances
 
-This `cloudformation` tool  (MAC and Linux compatible) creates an EMR 5.23.0 cluster with Spark 2.4.0, using [spot instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html), a cost effective option  (using a bid price) to deploy clusters. Once your cluster is up and running it will have the latest [**Hail 0.2**](https://www.hail.is) version and `Jupyter Lab` installed. See sample file in the `notebook` folder, pre-loaded in `Jupyter Lab` for you to use as starting point.
+This CloudFormation tool (macOS and Linux compatible) creates an **EMR 7.5.0** cluster with **Spark 3.5.x**, using [spot instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html) for cost-effective cluster deployment. Once your cluster is up and running, it will have the latest [**Hail 0.2**](https://www.hail.is) version and **Jupyter Lab** installed.
 
-## IMPORTANT: Software requirements
+## Version Information
 
-This tool requires the following programs to be previously installed in your computer (see details in section **Before getting started**):
-* Python3, pip and some additional python libraries
-* Amazon's `Command Line Interface (CLI)` utility
+| Component | Version |
+|-----------|---------|
+| EMR | 7.5.0 |
+| Spark | 3.5.x |
+| Hail | 0.2.137+ (latest) |
+| Python | 3.11 |
+| Java | 11 (Amazon Corretto) |
+| Operating System | Amazon Linux 2023 |
 
-To install the required software  open a terminal and execute the following:
+## Software Requirements
 
-#### For MAC
+This tool requires the following programs to be installed on your computer:
+
+* Python 3.10+ with pip
+* AWS Command Line Interface (CLI) v2
+* Required Python libraries: boto3, pandas, botocore, paramiko, pyyaml
+
+### Installation Instructions
+
+#### For macOS
+
 ```bash
-# Installs homebrew
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-# Installs python3
-brew install python3
-# Upgrades pip
-pip3 install --upgrade pip
-#Installs additional libraries
-sudo -H pip3 install boto3 pandas botocore paramiko pyyaml nose tornado
-# If the previous command does not work, try the following
-sudo -H python3 pip install boto3 pandas botocore paramiko pyyaml nose tornado
-# Installs AWS CLI
+# Install Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Python 3.11
+brew install python@3.11
+
+# Upgrade pip
+python3 -m pip install --upgrade pip
+
+# Install required libraries
+python3 -m pip install boto3 pandas botocore paramiko pyyaml
+
+# Install AWS CLI v2
 brew install awscli
 ```
 
-#### For Ubuntu
+#### For Ubuntu/Debian
+
 ```bash
-# Installs Linuxbrew
-sudo apt-get -y install build-essential curl file git
-echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-# Installs python3
-brew install python3
-# Upgrades pip
-pip3 install --upgrade pip
-#Installs additional libraries
-sudo -H pip3 install boto3 pandas botocore paramiko pyyaml nose tornado
-# If the previous command does not work, try the following
-sudo -H python3 pip install boto3 pandas botocore paramiko pyyaml nose tornado
-# Installs AWS CLI
-brew install awscli
+# Update package list
+sudo apt-get update
+
+# Install Python 3.11 and pip
+sudo apt-get install -y python3.11 python3.11-venv python3-pip
+
+# Upgrade pip
+python3 -m pip install --upgrade pip
+
+# Install required libraries
+python3 -m pip install boto3 pandas botocore paramiko pyyaml
+
+# Install AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
 ```
 
-## Before getting started
+#### For Amazon Linux 2023
 
-This tool is executed from the command line using Amazon's `CLI` utility. Before spinning gears, make sure you have:
+```bash
+# Install Python packages
+sudo dnf install -y python3.11 python3.11-pip
 
-a) **A configured `CLI` account**. From the terminal execute `aws configure`, [click here](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) for additional information. If your `CLI` account has been previously configured, the tool will use such configuration by default. If you want to re-configure and use a specific account or a different user, execute `aws configure` and re-configure your account
+# Install required libraries
+python3 -m pip install boto3 pandas botocore paramiko pyyaml
 
-b) **A valid EC2 key pair**. [Click here]( https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html) to learn more on how to create and use your key. **Safety remark**: once you have your key make sure to set the proper permissions for it: `chmod 400 my-key.pem`.
+# AWS CLI is pre-installed on Amazon Linux 2023
+```
 
-### How to use this `cloudformation` tool
+## Before Getting Started
 
-1. Open a terminal and clone this repository: `git clone https://github.com/hms-dbmi/hail-on-AWS-spot-instances`
+This tool uses Amazon's CLI utility. Before starting, ensure you have:
 
-2. Change directories: `cd hail-on-AWS-spot-instances/src`
+### a) Configured AWS CLI Account
 
-3. Using the text editor of your preference (sublime, atom, vi, emacs, etc) update the configuration file `config_EMR_spot.yaml` as per the instructions below. This file is your gateway to properly spinning a cluster and it requires specific elements to successfully create your working cluster. Before heading to step **4**, follow the instructions explained beneath.
+From the terminal, execute `aws configure`. For additional information, see the [AWS CLI Configuration Guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html).
 
-    #### Instructions to properly configure your `config_EMR_spot.yaml` file
+If your CLI account has been previously configured, the tool will use that configuration by default. To reconfigure or use a different account/user, run `aws configure` again.
 
-    This file will be used to provide the necessary information to create the cluster (do not change the name of the file). Give a name to your `EMR_CLUSTER_NAME` and add meaningful information by properly identifying your `EC2_NAME_TAG`, `OWNER_TAG` and `PROJECT_TAG`. The file in the repo is defaulted to region `us-east-1`, one `m4.large` master node and two `r4.4xlarge` worker nodes. You can change all this parameters to whatever suits your application.
+### b) Valid EC2 Key Pair
 
-    ```yaml
-    config:
-      EMR_CLUSTER_NAME: "my-hail-02-cluster" # Give a name to your EMR cluster
-      EC2_NAME_TAG: "my-hail-EMR" # Adds a tag to the individual EC2 instances
-      OWNER_TAG: "emr-owner" # EC2 owner tag
-      PROJECT_TAG: "my-project" # Project tag
-      REGION: "us-east-1"
-      MASTER_INSTANCE_TYPE: "m4.large" # Suggested EC2 instances, change as desired 
-      WORKER_INSTANCE_TYPE: "r4.xlarge" # Suggested EC2 instances, change as desired 
-      WORKER_COUNT: "4" # Number of worker nodes
-      WORKER_BID_PRICE: "0.44" # Required for spot instances
-      MASTER_HD_SIZE: "50" # Size in GB - For large data sets, more HD space may be required
-      WORKER_HD_SIZE: "150" # Size in GB - For large data sets, more HD space may be required (i.e. ~500GB for the 1KG Phase 3)
-      SUBNET_ID: "" # This field can be either left blank or for further security you can specify your private subnet ID in the form: subnet-1a2b3c4d
-      S3_BUCKET: "s3n://my-s3-bucket/" # Specify your S3 bucket for EMR log storage
-      KEY_NAME: "my-key" # Input your key name ONLY! DO NOT include the .pem extension
-      PATH_TO_KEY: "/full-path-to/my-key/" # # Full path to the FOLDER where the .pem file resides
-      WORKER_SECURITY_GROUP: "" # If empty creates a new group by default. You can also add a specific SG. See the SG link in the FAQs section
-      MASTER_SECURITY_GROUP: "" # If empty creates a new group by default. You can also add a specific SG. See the SG link in the FAQs section
-      HAIL_VERSION: "current" # Specify a git hash version (the first 7-12 characters will suffice) to install a specific commit/version. When left empty or "current" will install the latest version of Hail available in the repo
-    ```
+You need an EC2 key pair to SSH into your cluster. See [Amazon EC2 Key Pairs](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html) to learn how to create and use your key.
 
-    3.1. Select the **EC2** instances for your `MASTER_INSTANCE_TYPE` and your `WORKER_INSTANCE_TYPE`. It is recommended to use a small generic EC2 for the master, such as  `m4.large`, and more powerful EC2s (compute or memory optimized) for your worker nodes such as `r4.4large` or `m4.4xlarge`. [Visit this link](https://aws.amazon.com/ec2/instance-types/) to see the different types of EC2 instances.
+**Security Note:** Set proper permissions for your key file:
+```bash
+chmod 400 my-key.pem
+```
 
-    |Suggested EC2s (**`WORKER_INSTANCE_TYPE`**) |
-    |:-------------------------:|
-    | c4.4xlarge |
-    | r4.2xlarge |
-    | r4.4xlarge |
-    | m4.4xlarge |
-    | i3.4xlarge |
+### c) Required IAM Roles
 
-    Since we are using spot instances, the worker nodes require a maximum bid price to be specified. The field `WORKER_BID_PRICE` specifies the maximum cost that we will pay for each of the worker nodes. To choose an accurate and competitive bid price for your worker nodes, login to the [EMR management console](https://console.aws.amazon.com/elasticmapreduce):
+Ensure the following EMR service roles exist in your AWS account:
+- `EMR_DefaultRole`
+- `EMR_EC2_DefaultRole`
+- `EMR_AutoScaling_DefaultRole`
 
-    <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/AWS_login.png" width="350">
+If these roles don't exist, create them with:
+```bash
+aws emr create-default-roles
+```
 
-    Click on **Create cluster**:
+## How to Use This CloudFormation Tool
 
-    <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/create_cluster.png" width="600">
+### Step 1: Clone the Repository
 
-    Then, click on **Go to advanced options**:
+```bash
+git clone https://github.com/hms-dbmi/hail-on-AWS-spot-instances
+cd hail-on-AWS-spot-instances/src
+```
 
-    <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/advanced_options.png" width="600">
+### Step 2: Configure Your Cluster
 
-    You will be taken to *Step 1: Software and Steps*, click **Next**:
+Edit the configuration file `config_EMR_spot.yaml` with your preferred text editor:
 
-    <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/step1.png" width="800">
+```yaml
+config:
+  EMR_CLUSTER_NAME: "my-hail-02-cluster"    # Name for your EMR cluster
+  EMR_RELEASE_LABEL: "emr-7.5.0"            # EMR release version
+  EC2_NAME_TAG: "my-hail-EMR"               # Tag for EC2 instances
+  OWNER_TAG: "emr-owner"                    # Owner tag
+  PROJECT_TAG: "my-project"                 # Project tag
+  REGION: "us-east-1"                       # AWS region
+  MASTER_INSTANCE_TYPE: "m6i.xlarge"        # Master node instance type (xlarge minimum)
+  WORKER_INSTANCE_TYPE: "r6i.4xlarge"       # Worker node instance type
+  WORKER_COUNT: "4"                         # Number of worker nodes
+  WORKER_BID_PRICE: "0.50"                  # Max bid price for spot instances
+  MASTER_HD_SIZE: "50"                      # Master storage in GB
+  WORKER_HD_SIZE: "150"                     # Worker storage in GB
+  SUBNET_ID: ""                             # VPC subnet (optional)
+  S3_BUCKET: "s3://my-s3-bucket/"           # S3 bucket for EMR logs
+  KEY_NAME: "my-key"                        # EC2 key pair name (without .pem)
+  PATH_TO_KEY: "/full-path-to/my-key/"      # Path to key file directory
+  WORKER_SECURITY_GROUP: ""                 # Worker security group (optional)
+  MASTER_SECURITY_GROUP: ""                 # Master security group (optional)
+  HAIL_VERSION: "current"                   # Hail version (git hash or "current")
+```
 
-    Here, click on the instance type selection pencil **(1)** to find your worker node type. Within the list select your desired instance type and click on the **Save** button. Next, hover over the ***i*** icon **(2)** to show the current spot price for such instance:
+### Configuration Details
 
-    <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/spot_price.png" width="1024">
+#### Instance Types
 
-    Prices vary based on demand and by the **Subnet** with its corresponding **Availability Zone** (*subnet-053f834c* and zone *us-east-1a* in this example), where the later dictates the bid price; a good practice is to identify the current prices per subnet/zone and just go slightly above such price to guarantee that you will be promptly provisioned with instances. Even though you specify a higher bid price, you will still pay less if a lower price is available for your zone. The example below shows a suggested bid of $0.44 for `r4.4xlarge` instances in zones 1a and 1c:
+**Recommended instance types for EMR 7.x:**
 
-    <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/prices.png" width="420">
+> **Important:** EMR 7.5.0 requires **xlarge or larger** instance types. Smaller instance types (large, medium, small) are not supported.
 
-    3.2. For your `SUBNET_ID` you can either specify the subnet from the previous step (i.e. subnet-053f834c) or you can also choose a specific one from the [VPC Dashboard](https://console.aws.amazon.com/vpc), click on **Subnets** on the left panel:
+| Role | Recommended Types | Notes |
+|------|-------------------|-------|
+| Master | m6i.xlarge, m5.xlarge | General purpose, cost-effective (xlarge minimum required) |
+| Worker | r6i.2xlarge, r6i.4xlarge | Memory optimized for genomics |
+| Worker (alt) | m6i.4xlarge, c6i.4xlarge | Compute/general purpose |
 
-    <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/subnet_id.png" width="1024">
+View all instance types at [AWS EC2 Instance Types](https://aws.amazon.com/ec2/instance-types/).
 
-    For instance pricing, follow the guidelines from step **3.1**. The price is given by the **zone** where your subnet is located.
+#### Spot Instance Pricing
 
-    3.3. The `S3_BUCKET` field specifies a location to store all the logs of your cluster (i.e. s3n://my-s3-bucket/). If you leave it blank ("") the log folder will be created under your **S3 root** folder. The log folder will have the same name as your automatically assigned EMR cluster ID (i.e. *j-123EMRID3210*)
+To find competitive bid prices for spot instances:
 
-    3.4. The `KEY_NAME` field must include the name of your key **without** the extension. If your key file is `my-key.pem` only put `my-key`. The `PATH_TO_KEY` field requires the full path pointing to the key file. For additional details upon your key scroll up to the **Before getting started** section in this repo.
+1. Go to the [EMR Console](https://console.aws.amazon.com/elasticmapreduce)
+2. Click **Create cluster** > **Go to advanced options**
+3. In Step 2 (Hardware), select your desired instance type
+4. Check current spot prices for your availability zone
+5. Set `WORKER_BID_PRICE` slightly above the current price
 
-    3.5. In order to specify the `WORKER_SECURITY_GROUP` and `MASTER_SECURITY_GROUP` go to the [VPC Dashboard](https://console.aws.amazon.com/vpc) and from the left panel *Security* >> Security Groups . Note: if these two fields are left empty (default in the configuration file) the security groups are automatically assigned. **IMPORTANT:** to properly access `Jupyter Lab` from the browser, the port `8192` has to be added to the inbound rules of your `MASTER_SECURITY_GROUP`. To achieve this, and once you are in the  Security Groups page, select your desired group:
+**Tip:** Prices vary by availability zone. Choose a zone with lower prices when possible.
 
-      <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/security_group.png" width="1024">
+#### Subnet Configuration
 
-      Click on the **Inbound Rules** tab to double check that ports `8192` and `22` are on the list. To add/edit port rules click on **Edit rules** and use **one** of the two configurations suggested below:
+Find your subnet ID in the [VPC Console](https://console.aws.amazon.com/vpc) under **Subnets**. Leave blank to use the default subnet.
 
-      <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/security_group_options.png" width="1024">
+#### Security Groups
 
-      Click [here]( https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-groups.html) for additional documentation on security groups.
+If left empty, EMR creates default security groups. To use existing groups:
 
-      3.6. In case you desire to perform analysis in **Hail** under a specific version, the option `HAIL_VERSION` accepts either the abbreviated or the full SHA-1 hash. The script will accept any hash between 7-40 characters. The default is "current". If the specific hash is not given or if it wasn't found, the latest available version will be installed.
+1. Go to [VPC Console](https://console.aws.amazon.com/vpc) > **Security Groups**
+2. Ensure your master security group has these inbound rules:
+   - Port **22** (SSH)
+   - Port **8192** (Jupyter Lab)
 
-      <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/git_hash.png" width="1024">
+See [EMR Security Groups](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-groups.html) for more details.
 
+#### Hail Version
 
-4. Once the configuration file is properly filled and saved, go back to the terminal and from the `src` folder `hail-on-AWS-spot-instances/src` execute the command: **`sh cloudformation_hail_spot.sh`**. The EMR cluster creation takes between 7-10 minutes (depending on EC2 availability). **DO NOT** terminate the script execution as you will automatically get the IP address to connect to the `JypyterNotebook` in the form: **`123.456.0.1:8192`**. Here's a sample screenshot  showing what you get once the cluster is successfully created:
+- `"current"` - Installs the latest Hail version from the main branch
+- Git hash (7-40 characters) - Installs a specific Hail version
 
-<img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/starting_EMR.png" width="750">
+### Step 3: Deploy the Cluster
 
-(Optional) The full log of the EMR provisioning can be found at: `/tmp/cloudcreation_log.out`.
+From the `src` directory, run:
 
+```bash
+sh cloudformation_hail_spot.sh
+```
 
-5. You can check the status of the EMR creation at: https://console.aws.amazon.com/elasticmapreduce. The EMR is successfully created once it gets the **Status** `Waiting` and a solid green circle to the left of the cluster Name.
+The cluster creation takes approximately **10-15 minutes**. The script will output:
+- Cluster ID
+- Master node IP address
+- Jupyter Lab URL (e.g., `http://123.456.0.1:8192`)
 
-<img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/emr_waiting.png" width="650">
+**Do not terminate the script** - it automatically provides connection information.
 
-After the cluster is created, allow for automatic program installation and configuration (~5-8 minutes depending on the number of worker nodes). No additional action is required but to wait for the installation process to complete. (Optional) In addition, the script will also provide the public DNS to connect to the master node. [Click here](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-master-node-ssh.html) for instructions on how to connect to the master node (NOTE: use username `hadoop`) to monitor cluster progress and status (the program installation log at the master node of your EMR is saved at the path: `/tmp/cloudcreation_log.out`):
+### Step 4: Monitor Cluster Status
 
-<img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/successful_EMR.png" width="550">
+Check cluster status at the [EMR Console](https://console.aws.amazon.com/elasticmapreduce). The cluster is ready when status shows **Waiting** with a green indicator.
 
-## Launching  `Jupyter Lab`
+After the cluster is created, allow **10-15 minutes** for Hail installation and configuration. Monitor progress by SSHing to the master node:
 
-To launch  `Jupyter Lab` you need to paste the previously given IP (*`123.456.0.1:8192`* this is the master node's IP pointing to port 8192) in a browser and hit `Enter`; once you see the following screen:
+```bash
+ssh -i /path/to/your-key.pem hadoop@<master-dns>
+tail -f /tmp/cloudcreation_log.out
+```
 
-<img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/jupyter.png" width="350">
+## Launching Jupyter Lab
 
-use password: **`avillach`** to login. If you successfully log in, you are all set!
+1. Open your browser and navigate to `http://<master-ip>:8192`
+2. Enter password: **`avillach`**
 
+You're now ready to use Hail!
 
-## FAQs and troubleshooting
+## Sample Notebooks
 
-* If after executing `sh cloudformation_hail_spot.sh` you get an error message saying that "variable cluster_id_json is out of range" it means that the CLI command `aws emr create-cluster --applications Name=Hadoop Name=Spark ...` did not retrieve a cluster ID. This error occurs due to different reasons: a defective AWS account configuration (`aws configure`), the user needs additional permits such as AmazonElasticMapReduce* or  AmazonEC2*. 
+The `notebook/` directory contains sample Jupyter notebooks including a GWAS tutorial to help you get started with Hail.
 
-* Some times you may get sudden or unexpected errors. One of the reasons may be the fact that your initial spot instances can be dropped and replaced by a new instance (that's how the spot instance model works). This `cloudformation` tool constantly --every minute-- checks for this behavior and will fix everything for you. A common error when an instance is replaced is:
+## Troubleshooting
 
+### Common Issues
+
+**"variable cluster_id_json is out of range" error:**
+- Check your AWS CLI configuration (`aws configure`)
+- Verify your IAM user has EMR permissions (AmazonElasticMapReduceFullAccess)
+- Run `aws emr create-default-roles` to create required IAM roles
+
+**"EMR_DefaultRole is invalid" error:**
+- Create default roles: `aws emr create-default-roles`
+- See [AWS Knowledge Center](https://aws.amazon.com/premiumsupport/knowledge-center/emr-default-role-invalid/)
+
+**Hail ClassNotFoundException errors:**
 ```java
 FatalError: ClassNotFoundException: is.hail.kryo.HailKryoRegistrator
 ```
+This can occur when spot instances are replaced. The tool automatically detects and fixes this (runs every minute via cron). You can also restart the Jupyter kernel: **Kernel** > **Restart**.
 
-* For this and other `Jupyter Lab` glitches, you only need to restart the kernel by clicking on `Kernel` >> `Restart` or `Restart & Run All`:
+**Jupyter Lab not accessible:**
+- Verify port 8192 is open in your master security group
+- Check that the cluster status is "Waiting"
+- Wait for installation to complete (check `/tmp/cloudcreation_log.out`)
 
-<img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/kernel.png" width="550">
+### Useful Commands
 
+```bash
+# SSH to master node
+ssh -i /path/to/key.pem hadoop@<master-dns>
 
-* For <img src="https://github.com/hms-dbmi/hail-on-AWS-spot-instances/blob/master/images/hail.png" width="80"> documentation visit their website: <https://hail.is/docs/0.2/index.html>
+# Check installation logs
+tail -f /tmp/cloudcreation_log.out
 
-* If you get the error "EMR_DefaultRole is invalid", this is how to solve it: https://aws.amazon.com/premiumsupport/knowledge-center/emr-default-role-invalid/
+# Check Hail installation
+python3 -c "import hail as hl; print(hl.__version__)"
+
+# Restart Jupyter Lab
+cd /opt/hail-on-AWS-spot-instances/src && ./jupyter_run.sh
+```
+
+## Resources
+
+- [Hail Documentation](https://hail.is/docs/0.2/index.html)
+- [AWS EMR Documentation](https://docs.aws.amazon.com/emr/latest/ManagementGuide/)
+- [Spark Documentation](https://spark.apache.org/docs/3.5.0/)
+
+## License
+
+This project is licensed under the MIT License.

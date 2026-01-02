@@ -1,0 +1,34 @@
+# Virtual environment
+venv/
+
+# Test configuration
+src/config_EMR_spot_test.yaml
+
+# Sensitive files
+*.pem
+*.key
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# MCP config (local)
+.mcp.json
+
+# External tools (not part of this project)
+Office-Word-MCP-Server/

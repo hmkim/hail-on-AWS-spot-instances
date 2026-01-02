@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Script to update Hail on an existing EMR cluster
+# For EMR 7.x with Spark 3.5.x
+
 # Error message
 error_msg ()
 {
@@ -10,15 +13,13 @@ error_msg ()
 # Usage
 usage()
 {
-echo "Usage: cloudformation.sh [-v | --version <git hash>] [-h | --help]
+echo "Usage: update_hail.sh [-v | --version <git hash>] [-h | --help]
 
 Options:
 -v | --version <git hash>
     This option takes either the abbreviated (8-12 characters) or the full size hash (40 characters).
-    When provided, the command uses a pre-compiled Hail version for the EMR cluster. If the hash (sha1)
-    version exists in the pre-compiled list, that specific hash will be used.
-    If no version is given or if the hash was not found, Hail will be compiled from scratch using the most
-    up to date version available in the repository (https://github.com/hail-is/hail)
+    When provided, the command builds Hail from the specified git commit.
+    If no version is given or 'current', Hail will be compiled from the latest main branch.
 
 -h | --help
 	Displays this menu"
@@ -41,16 +42,16 @@ while [ "$1" != "" ]; do
     shift
 done
 
-echo "Running Hail installation with option: $HASH"
-sudo rm -r hail
-sudo rm /etc/alternatives/jre/include/include
+echo "Running Hail update with version: ${HASH:-current}"
+
+# Remove existing Hail installation
+sudo rm -rf hail 2>/dev/null
+
 # Build Hail
-./hail_build.sh -v $HASH
+./hail_build.sh -v ${HASH:-current}
 
-# KEY=$(ls ~/.ssh/id_rsa/)
-# for WORKERIP in `sudo grep -i privateip /mnt/var/lib/info/*.txt | sort -u | cut -d "\"" -f 2`
-# do
-# 	scp -i $HOME/.ssh/id_rsa/$KEY $HOME/hail-* $WORKERIP:/home/hadoop/
-# done
+# Restart YARN resource manager (EMR 7.x uses systemctl)
+sudo systemctl restart hadoop-yarn-resourcemanager 2>/dev/null || \
+    (sudo stop hadoop-yarn-resourcemanager; sleep 1; sudo start hadoop-yarn-resourcemanager)
 
-sudo stop hadoop-yarn-resourcemanager; sleep 1; sudo start hadoop-yarn-resourcemanager
+echo "Hail update completed. Restart Jupyter kernel to use the new version."
