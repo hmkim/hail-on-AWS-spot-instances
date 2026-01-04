@@ -244,12 +244,38 @@ Find your subnet ID in the [VPC Console](https://console.aws.amazon.com/vpc) und
 
 #### Security Groups
 
-If left empty, EMR creates default security groups. To use existing groups:
+If left empty, EMR creates default security groups. After cluster creation, you need to add inbound rules to access the cluster from your computer.
 
-1. Go to [VPC Console](https://console.aws.amazon.com/vpc) > **Security Groups**
-2. Ensure your master security group has these inbound rules:
-   - Port **22** (SSH)
-   - Port **8192** (Jupyter Lab)
+**Adding inbound rules to the Master security group:**
+
+1. Go to [EC2 Console](https://console.aws.amazon.com/ec2) > **Security Groups**
+2. Find the security group named `ElasticMapReduce-master` (or your custom master security group)
+3. Click **Edit inbound rules** and add:
+
+| Type | Port | Source | Description |
+|------|------|--------|-------------|
+| SSH | 22 | My IP | SSH access |
+| Custom TCP | 8192 | My IP | Jupyter Lab |
+
+**Finding your IP address:**
+```bash
+curl -s ifconfig.me
+```
+
+**Using AWS CLI to add rules:**
+```bash
+# Get your public IP
+MY_IP=$(curl -s ifconfig.me)
+
+# Find the master security group ID (after cluster is created)
+SG_ID=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=ElasticMapReduce-master" --query 'SecurityGroups[0].GroupId' --output text --region <your-region>)
+
+# Add SSH rule
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr $MY_IP/32 --region <your-region>
+
+# Add Jupyter Lab rule
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 8192 --cidr $MY_IP/32 --region <your-region>
+```
 
 See [EMR Security Groups](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-groups.html) for more details.
 
@@ -286,6 +312,29 @@ tail -f /tmp/cloudcreation_log.out
 
 ## Launching Jupyter Lab
 
+### Finding the Master Node IP Address
+
+**Option 1: Using AWS CLI**
+```bash
+# Replace <cluster-id> and <region> with your values
+aws emr describe-cluster --cluster-id <cluster-id> --region <region> --query 'Cluster.MasterPublicDnsName' --output text
+
+# Or get the public IP directly
+aws emr list-instances --cluster-id <cluster-id> --instance-group-types MASTER --region <region> --query 'Instances[0].PublicIpAddress' --output text
+```
+
+**Option 2: Using EMR Console**
+1. Go to [EMR Console](https://console.aws.amazon.com/elasticmapreduce)
+2. Click on your cluster name
+3. Find **Master public DNS** in the Summary tab
+
+**Option 3: Using EC2 Console**
+1. Go to [EC2 Console](https://console.aws.amazon.com/ec2) > **Instances**
+2. Find the instance with tag `Name: <your-cluster-name>` and `aws:elasticmapreduce:instance-group-role: MASTER`
+3. Copy the **Public IPv4 address**
+
+### Accessing Jupyter Lab
+
 1. Open your browser and navigate to `http://<master-ip>:8192`
 2. Enter password: **`avillach`**
 
@@ -319,6 +368,22 @@ This can occur when spot instances are replaced. The tool automatically detects 
 - Check that the cluster status is "Waiting"
 - Wait for installation to complete (check `/tmp/cloudcreation_log.out`)
 
+**ModuleNotFoundError: No module named 'pandas' (or other modules):**
+```python
+ModuleNotFoundError: No module named 'pandas'
+```
+This error occurs when using the wrong Python version. Hail is installed on Python 3.11, not the system Python 3.9.
+
+**Wrong:**
+```bash
+python3 -c "import hail as hl; print(hl.__version__)"
+```
+
+**Correct:**
+```bash
+python3.11 -c "import hail as hl; print(hl.__version__)"
+```
+
 ### Useful Commands
 
 ```bash
@@ -328,12 +393,14 @@ ssh -i /path/to/key.pem hadoop@<master-dns>
 # Check installation logs
 tail -f /tmp/cloudcreation_log.out
 
-# Check Hail installation
-python3 -c "import hail as hl; print(hl.__version__)"
+# Check Hail installation (IMPORTANT: use python3.11, not python3)
+python3.11 -c "import hail as hl; print(hl.__version__)"
 
 # Restart Jupyter Lab
 cd /opt/hail-on-AWS-spot-instances/src && ./jupyter_run.sh
 ```
+
+**Important:** Hail is installed on Python 3.11, not the system Python 3.9. Always use `python3.11` when running Hail commands directly.
 
 ## Resources
 
