@@ -70,7 +70,7 @@ sudo mkdir -p /opt
 sudo chmod 777 /opt/
 sudo chown hadoop:hadoop /opt
 cd /opt
-git clone https://github.com/hms-dbmi/hail-on-AWS-spot-instances.git
+git clone -b dev https://github.com/hmkim/hail-on-AWS-spot-instances.git
 cd $HAIL_HOME/src
 
 # Build and install Hail
