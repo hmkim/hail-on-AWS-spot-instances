@@ -238,18 +238,6 @@ config:
 
 View all instance types at [AWS EC2 Instance Types](https://aws.amazon.com/ec2/instance-types/).
 
-#### Spot Instance Pricing
-
-To find competitive bid prices for spot instances:
-
-1. Go to the [EMR Console](https://console.aws.amazon.com/elasticmapreduce)
-2. Click **Create cluster** > **Go to advanced options**
-3. In Step 2 (Hardware), select your desired instance type
-4. Check current spot prices for your availability zone
-5. Set `WORKER_BID_PRICE` slightly above the current price
-
-**Tip:** Prices vary by availability zone. Choose a zone with lower prices when possible.
-
 #### Subnet Configuration
 
 Find your subnet ID in the [VPC Console](https://console.aws.amazon.com/vpc) under **Subnets**. Leave blank to use the default subnet.
