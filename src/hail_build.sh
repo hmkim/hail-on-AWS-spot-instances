@@ -63,6 +63,13 @@ if [ "$IS_MASTER" = true ]; then
     echo "export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto.x86_64" | sudo tee /etc/profile.d/java11.sh
     echo "export PATH=\$JAVA_HOME/bin:\$PATH" | sudo tee -a /etc/profile.d/java11.sh
 
+    # Update Spark to use Java 11 (EMR 7.x defaults to Java 17)
+    if [ -f /etc/spark/conf/spark-env.sh ]; then
+        echo "Updating Spark to use Java 11..."
+        sudo sed -i 's|JAVA17_HOME=/usr/lib/jvm/jre-17|JAVA11_HOME=/usr/lib/jvm/java-11-amazon-corretto.x86_64|g' /etc/spark/conf/spark-env.sh
+        sudo sed -i 's|export JAVA_HOME=\$JAVA17_HOME|export JAVA_HOME=\$JAVA11_HOME|g' /etc/spark/conf/spark-env.sh
+    fi
+
     echo "Java version:"
     java -version 2>&1
 

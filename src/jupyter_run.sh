@@ -29,11 +29,19 @@ if [ -z "$EMRFS_JAR" ]; then
     EMRFS_JAR="/usr/share/aws/emr/emrfs/lib/emrfs-hadoop-assembly.jar"
 fi
 
-# Hail jar location (if built separately - not needed for wheel-based installation)
-HAIL_JAR=$(find /opt -name "hail-all-spark.jar" 2>/dev/null | head -1)
+# Hail jar location - prefer PyPI installation, fall back to /opt
+# PyPI installation puts JAR in site-packages/hail/backend/
+HAIL_JAR=$(find /usr/local/lib/python3.11/site-packages/hail -name "hail-all-spark.jar" 2>/dev/null | head -1)
+if [ -z "$HAIL_JAR" ]; then
+    # Fall back to /opt for source builds
+    HAIL_JAR=$(find /opt -name "hail-all-spark.jar" 2>/dev/null | head -1)
+fi
+
 if [ -n "$HAIL_JAR" ]; then
+    echo "Using Hail JAR: $HAIL_JAR"
     JAR_PATH="$HAIL_JAR:$EMRFS_JAR"
 else
+    echo "Warning: Hail JAR not found"
     JAR_PATH="$EMRFS_JAR"
 fi
 
