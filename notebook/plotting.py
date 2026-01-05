@@ -6,10 +6,9 @@ import pandas as pd
 from collections import OrderedDict
 import json
 
-import bokeh
 import warnings
-from bokeh.layouts import gridplot, row
-from bokeh.plotting import figure, show, output_file
+from bokeh.layouts import gridplot, row, Grid
+from bokeh.plotting import figure, show, output_file, Figure
 from bokeh.io import output_notebook, push_notebook
 from bokeh.models import Tabs, Panel
 from bokeh.palettes import *
@@ -41,7 +40,7 @@ def plot_hail_hist(hist_data: hl.Struct,
                    outlier_fill_color: str = "#036564",
                    line_color: str = '#033649',
                    hover_mode: str = 'mouse',
-                   hide_zeros: bool = False) -> bokeh.plotting.Figure:
+                   hide_zeros: bool = False) -> Figure:
     """
     hist_data can (and should) come straight from ht.aggregate(hl.agg.hist(ht.data, start, end, bins))
 
@@ -76,7 +75,7 @@ def plot_multi_hail_hist(hist_data: Dict[str, hl.Struct],
                          line_color: str = '#033649',
                          hover_mode: str = 'mouse',
                          hide_zeros: bool = False,
-                         alpha: float = None) -> bokeh.plotting.Figure:
+                         alpha: float = None) -> Figure:
     """
     Plots multiple histograms on the same plot.
     Each histogram can (and should) come straight from ht.aggregate(hl.agg.hist(ht.data, start, end, bins))
@@ -152,7 +151,7 @@ def plot_multi_hail_hist(hist_data: Dict[str, hl.Struct],
 
 
 def plot_hail_hist_cumulative(hist_data: hl.Struct, title: str = 'Plot', normalize: bool = True,
-                              line_color: str = "#036564", line_width: int = 3, log: bool = False, hover_mode: str = 'mouse') -> bokeh.plotting.Figure:
+                              line_color: str = "#036564", line_width: int = 3, log: bool = False, hover_mode: str = 'mouse') -> Figure:
     """
     hist_data can (and should) come straight from ht.aggregate(hl.agg.hist(ht.data, start, end, bins))
 
@@ -521,7 +520,7 @@ def linear_and_log_tabs(plot_func: Callable, **kwargs) -> Tabs:
     return Tabs(tabs=panels)
 
 
-def plot_hail_file_metadata(t_path: str) -> Optional[Union[Grid, Tabs, bokeh.plotting.Figure]]:
+def plot_hail_file_metadata(t_path: str) -> Optional[Union[Grid, Tabs, Figure]]:
     """
     Takes path to hail Table or MatrixTable (gs://bucket/path/hail.mt), outputs Grid or Tabs, respectively
     Or if an unordered Table is provided, a Figure with file sizes is output
