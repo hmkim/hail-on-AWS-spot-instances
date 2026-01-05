@@ -336,7 +336,7 @@ aws emr list-instances --cluster-id <cluster-id> --instance-group-types MASTER -
 ### Accessing Jupyter Lab
 
 1. Open your browser and navigate to `http://<master-ip>:8192`
-2. Enter password: **`avillach`**
+2. No password required (token authentication is disabled)
 
 You're now ready to use Hail!
 
