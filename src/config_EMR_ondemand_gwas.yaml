@@ -1,0 +1,21 @@
+config:
+  EMR_CLUSTER_NAME: "hail-gwas-ondemand" # On-Demand instance cluster for GWAS tutorial
+  EMR_RELEASE_LABEL: "emr-7.5.0" # EMR release version (7.5.0 includes Spark 3.5.x required for Hail 0.2.137)
+  EC2_NAME_TAG: "hail-gwas-ondemand-emr" # Tag for EC2 instances
+  OWNER_TAG: "brandon" # EC2 owner tag
+  PROJECT_TAG: "hail-gwas-cost-comparison" # Project tag
+  REGION: "ap-northeast-2"
+  MASTER_INSTANCE_TYPE: "m5.xlarge" # Master node instance type (EMR 7.5.0 requires xlarge minimum)
+  WORKER_INSTANCE_TYPE: "r5.2xlarge" # Worker node instance type (8 vCPU, 64GB RAM)
+  WORKER_COUNT: "2" # Number of worker nodes (small cluster for testing)
+  WORKER_BID_PRICE: "" # Empty = On-Demand instances
+  MASTER_HD_SIZE: "50" # Size in GB
+  WORKER_HD_SIZE: "100" # Size in GB
+  SUBNET_ID: "" # Leave blank to use default subnet
+  S3_BUCKET: "s3://hail-test-bucket-ap-northeast-2/" # S3 bucket for EMR logs
+  KEY_NAME: "brandon-demo-ap-northeast-2" # EC2 key pair name (without .pem)
+  PATH_TO_KEY: "/home/ec2-user/hail-on-AWS-spot-instances/hail-on-AWS-spot-instances/" # Path to key file directory
+  WORKER_SECURITY_GROUP: "" # Use default security group
+  MASTER_SECURITY_GROUP: "" # Use default security group
+  HAIL_VERSION: "current" # Use latest Hail version
+  USE_SPOT: "false" # Disable Spot instances (use On-Demand)

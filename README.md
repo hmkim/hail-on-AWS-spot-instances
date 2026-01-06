@@ -344,6 +344,30 @@ You're now ready to use Hail!
 
 The `notebook/` directory contains sample Jupyter notebooks including a GWAS tutorial to help you get started with Hail.
 
+## Documentation
+
+Detailed documentation is available in the `docs/` directory:
+
+| Document | Description |
+|----------|-------------|
+| [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | Comprehensive setup guide for EMR 7.5.0 with Hail |
+| [SETUP_GUIDE.ko.md](docs/SETUP_GUIDE.ko.md) | Setup guide (Korean version) |
+| [COST_ANALYSIS.md](docs/COST_ANALYSIS.md) | Spot vs On-Demand cost analysis report |
+| [COST_ANALYSIS.ko.md](docs/COST_ANALYSIS.ko.md) | Cost analysis report (Korean version) |
+
+## Cost Savings with Spot Instances
+
+Using Spot instances can reduce costs by approximately **60%** compared to On-Demand instances, with identical performance for batch analysis workloads like GWAS.
+
+### Benchmark Results (GWAS Tutorial)
+
+| Cluster Type | Hourly Cost | Execution Time | Result |
+|--------------|-------------|----------------|--------|
+| Spot | $0.59/hr | 100.37s | Identical |
+| On-Demand | $1.41/hr | 108.18s | Identical |
+
+For detailed cost analysis and recommendations, see [COST_ANALYSIS.md](docs/COST_ANALYSIS.md).
+
 ## Troubleshooting
 
 ### Common Issues

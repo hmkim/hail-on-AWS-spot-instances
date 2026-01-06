@@ -22,11 +22,28 @@ import json
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 # Load configuration - use safe_load to avoid deprecation warning
-# Check for test config first, fall back to default
+# Support command-line argument for config file
 import os.path
-config_file = PATH + "/config_EMR_spot_test.yaml"
-if not os.path.exists(config_file):
+import argparse
+
+parser = argparse.ArgumentParser(description='Deploy Hail EMR Cluster')
+parser.add_argument('--config', '-c', type=str, help='Path to configuration YAML file')
+parser.add_argument('--profile', '-p', type=str, help='AWS profile name to use')
+args, unknown = parser.parse_known_args()
+
+# Set AWS profile if specified
+if args.profile:
+    os.environ['AWS_PROFILE'] = args.profile
+    print(f"Using AWS profile: {args.profile}")
+
+# Determine config file to use
+if args.config:
+    config_file = args.config
+elif os.path.exists(PATH + "/config_EMR_spot_test.yaml"):
+    config_file = PATH + "/config_EMR_spot_test.yaml"
+else:
     config_file = PATH + "/config_EMR_spot.yaml"
+
 print(f"Using config file: {config_file}")
 with open(config_file) as f:
     c = yaml.safe_load(f)
@@ -48,44 +65,55 @@ ec2_attributes = {
     "EmrManagedMasterSecurityGroup": config['MASTER_SECURITY_GROUP']
 }
 
+# Check if using Spot instances
+use_spot = config.get('USE_SPOT', 'true').lower() == 'true'
+bid_price = config.get('WORKER_BID_PRICE', '')
+
 # Instance groups configuration
-instance_groups = [
-    {
-        "InstanceCount": 1,
-        "EbsConfiguration": {
-            "EbsBlockDeviceConfigs": [
-                {
-                    "VolumeSpecification": {
-                        "SizeInGB": int(config['MASTER_HD_SIZE']),
-                        "VolumeType": "gp3"
-                    },
-                    "VolumesPerInstance": 1
-                }
-            ]
-        },
-        "InstanceGroupType": "MASTER",
-        "InstanceType": config['MASTER_INSTANCE_TYPE'],
-        "Name": "Master-Instance"
+master_instance_group = {
+    "InstanceCount": 1,
+    "EbsConfiguration": {
+        "EbsBlockDeviceConfigs": [
+            {
+                "VolumeSpecification": {
+                    "SizeInGB": int(config['MASTER_HD_SIZE']),
+                    "VolumeType": "gp3"
+                },
+                "VolumesPerInstance": 1
+            }
+        ]
     },
-    {
-        "InstanceCount": int(config['WORKER_COUNT']),
-        "BidPrice": config['WORKER_BID_PRICE'],
-        "EbsConfiguration": {
-            "EbsBlockDeviceConfigs": [
-                {
-                    "VolumeSpecification": {
-                        "SizeInGB": int(config['WORKER_HD_SIZE']),
-                        "VolumeType": "gp3"
-                    },
-                    "VolumesPerInstance": 1
-                }
-            ]
-        },
-        "InstanceGroupType": "CORE",
-        "InstanceType": config['WORKER_INSTANCE_TYPE'],
-        "Name": "Core-Group"
-    }
-]
+    "InstanceGroupType": "MASTER",
+    "InstanceType": config['MASTER_INSTANCE_TYPE'],
+    "Name": "Master-Instance"
+}
+
+worker_instance_group = {
+    "InstanceCount": int(config['WORKER_COUNT']),
+    "EbsConfiguration": {
+        "EbsBlockDeviceConfigs": [
+            {
+                "VolumeSpecification": {
+                    "SizeInGB": int(config['WORKER_HD_SIZE']),
+                    "VolumeType": "gp3"
+                },
+                "VolumesPerInstance": 1
+            }
+        ]
+    },
+    "InstanceGroupType": "CORE",
+    "InstanceType": config['WORKER_INSTANCE_TYPE'],
+    "Name": "Core-Group"
+}
+
+# Add BidPrice only if using Spot instances
+if use_spot and bid_price:
+    worker_instance_group["BidPrice"] = bid_price
+    print(f"Using SPOT instances with bid price: ${bid_price}/hour")
+else:
+    print("Using ON-DEMAND instances")
+
+instance_groups = [master_instance_group, worker_instance_group]
 
 # EMR configurations for Spark 3.5.x optimization
 configurations = [

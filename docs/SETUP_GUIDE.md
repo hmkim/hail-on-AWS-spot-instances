@@ -1,100 +1,100 @@
-# Hail on AWS EMR 7.5.0 종합 설정 가이드
+# Hail on AWS EMR 7.5.0 Comprehensive Setup Guide
 
-이 문서는 AWS EMR 7.5.0에서 Hail 0.2.137을 설정하는 전체 과정과 주요 고려사항을 정리합니다.
+This document covers the complete process and key considerations for setting up Hail 0.2.137 on AWS EMR 7.5.0.
 
-## 버전 정보
+## Version Information
 
-| 컴포넌트 | 버전 | 비고 |
-|---------|------|------|
-| EMR | 7.5.0 | Amazon Linux 2023 기반 |
-| Spark | 3.5.x | EMR 7.5.0에 포함 |
-| Hail | 0.2.137+ | PyPI에서 설치 |
-| Python | 3.11 | Hail 전용 (시스템 Python 3.9와 별도) |
-| Java | 11 (Amazon Corretto) | Hail 요구사항 |
+| Component | Version | Notes |
+|-----------|---------|-------|
+| EMR | 7.5.0 | Based on Amazon Linux 2023 |
+| Spark | 3.5.x | Included in EMR 7.5.0 |
+| Hail | 0.2.137+ | Installed from PyPI |
+| Python | 3.11 | Dedicated for Hail (separate from system Python 3.9) |
+| Java | 11 (Amazon Corretto) | Hail requirement |
 | OS | Amazon Linux 2023 | yum → dnf |
 
-## 핵심 요구사항
+## Key Requirements
 
-### 1. Java 11 필수
+### 1. Java 11 Required
 
-Hail 0.2.137은 Java 11을 요구합니다. EMR 7.x는 기본적으로 Java 17을 사용하므로 반드시 Java 11로 변경해야 합니다.
+Hail 0.2.137 requires Java 11. EMR 7.x uses Java 17 by default, so you must change to Java 11.
 
-**증상 (Java 17 사용 시):**
+**Symptoms (when using Java 17):**
 ```
 java.lang.UnsupportedClassVersionError: is/hail/backend/service/Main has been compiled by a more recent version of the Java Runtime
 ```
 
-**해결 방법 (hail_build.sh에서 적용됨):**
+**Solution (applied in hail_build.sh):**
 ```bash
-# Spark의 Java 설정을 Java 17에서 Java 11로 변경
+# Change Spark's Java configuration from Java 17 to Java 11
 sudo sed -i 's|JAVA17_HOME=/usr/lib/jvm/jre-17|JAVA11_HOME=/usr/lib/jvm/java-11-amazon-corretto.x86_64|g' /etc/spark/conf/spark-env.sh
 sudo sed -i 's|export JAVA_HOME=\$JAVA17_HOME|export JAVA_HOME=\$JAVA11_HOME|g' /etc/spark/conf/spark-env.sh
 ```
 
-### 2. xlarge 이상 인스턴스 타입 필수
+### 2. xlarge or Larger Instance Types Required
 
-EMR 7.5.0은 xlarge 이상의 인스턴스 타입만 지원합니다.
+EMR 7.5.0 only supports xlarge or larger instance types.
 
-| 역할 | 권장 타입 | 비고 |
-|------|----------|------|
-| Master | m6i.xlarge | 최소 xlarge 필수 |
-| Worker | r6i.2xlarge, r6i.4xlarge | 메모리 최적화 권장 |
+| Role | Recommended Type | Notes |
+|------|-----------------|-------|
+| Master | m6i.xlarge | Minimum xlarge required |
+| Worker | r6i.2xlarge, r6i.4xlarge | Memory-optimized recommended |
 
-**지원하지 않는 타입:** large, medium, small
+**Unsupported types:** large, medium, small
 
-### 3. Python 3.11 사용
+### 3. Use Python 3.11
 
-Hail은 Python 3.11에 설치됩니다. 시스템 Python (3.9)을 수정하면 안 됩니다.
+Hail is installed on Python 3.11. Do not modify system Python (3.9).
 
-**올바른 사용:**
+**Correct usage:**
 ```bash
 python3.11 -c "import hail as hl; print(hl.__version__)"
 ```
 
-**잘못된 사용:**
+**Incorrect usage:**
 ```bash
-python3 -c "import hail as hl; print(hl.__version__)"  # 에러 발생
+python3 -c "import hail as hl; print(hl.__version__)"  # Error
 ```
 
-### 4. Hail JAR 경로
+### 4. Hail JAR Path
 
-PyPI에서 설치한 Hail의 JAR 파일 위치:
+Location of JAR file for Hail installed from PyPI:
 ```
 /usr/local/lib/python3.11/site-packages/hail/backend/hail-all-spark.jar
 ```
 
-jupyter_run.sh에서 이 경로를 우선적으로 찾도록 설정되어 있습니다.
+This path is prioritized in jupyter_run.sh.
 
-## 배포 아키텍처
+## Deployment Architecture
 
 ```
 cloudformation_hail_spot.sh
-    └── run.sh (AWS 자격증명 검증)
-        └── EMR_deploy_and_install_spot.py (boto3로 EMR 클러스터 생성)
-            └── Bootstrap Actions (S3에서 다운로드):
-                ├── bootstrap_python.sh (Python 3.11 환경 설정)
-                ├── install_hail.sh (마스터 노드 설정 오케스트레이션)
-                │   ├── hail_build.sh (Hail PyPI 설치, Java 11 설정)
-                │   └── jupyter_run.sh (Jupyter Lab 시작)
-                └── run_when_new_instance_added.sh (스팟 인스턴스 복구용 cron)
+    └── run.sh (AWS credential validation)
+        └── EMR_deploy_and_install_spot.py (Create EMR cluster with boto3)
+            └── Bootstrap Actions (downloaded from S3):
+                ├── bootstrap_python.sh (Python 3.11 environment setup)
+                ├── install_hail.sh (Master node setup orchestration)
+                │   ├── hail_build.sh (Hail PyPI installation, Java 11 setup)
+                │   └── jupyter_run.sh (Start Jupyter Lab)
+                └── run_when_new_instance_added.sh (Cron for spot instance recovery)
 ```
 
-## 배포 단계
+## Deployment Steps
 
-### 1단계: 사전 준비
+### Step 1: Prerequisites
 
 ```bash
-# AWS CLI 설정
+# Configure AWS CLI
 aws configure
 
-# EMR 기본 역할 생성
+# Create EMR default roles
 aws emr create-default-roles
 
-# EC2 키 페어 권한 설정
+# Set EC2 key pair permissions
 chmod 400 my-key.pem
 ```
 
-### 2단계: 설정 파일 수정
+### Step 2: Edit Configuration File
 
 `src/config_EMR_spot.yaml`:
 ```yaml
@@ -102,7 +102,7 @@ config:
   EMR_CLUSTER_NAME: "my-hail-02-cluster"
   EMR_RELEASE_LABEL: "emr-7.5.0"
   REGION: "ap-northeast-2"
-  MASTER_INSTANCE_TYPE: "m6i.xlarge"      # xlarge 이상 필수
+  MASTER_INSTANCE_TYPE: "m6i.xlarge"      # xlarge or larger required
   WORKER_INSTANCE_TYPE: "r6i.4xlarge"
   WORKER_COUNT: "4"
   WORKER_BID_PRICE: "0.50"
@@ -112,152 +112,152 @@ config:
   HAIL_VERSION: "current"
 ```
 
-### 3단계: 클러스터 배포
+### Step 3: Deploy Cluster
 
 ```bash
 cd src
 sh cloudformation_hail_spot.sh
 ```
 
-배포 소요 시간: 약 10-15분
+Deployment time: approximately 10-15 minutes
 
-### 4단계: 보안 그룹 설정
+### Step 4: Configure Security Groups
 
-EMR 마스터 보안 그룹에 다음 인바운드 규칙 추가:
+Add the following inbound rules to the EMR master security group:
 
-| 포트 | 용도 |
-|------|------|
-| 22 | SSH 접속 |
+| Port | Purpose |
+|------|---------|
+| 22 | SSH access |
 | 8192 | Jupyter Lab |
 
 ```bash
-# 내 IP 확인
+# Get your IP
 MY_IP=$(curl -s ifconfig.me)
 
-# 보안 그룹 ID 확인
+# Get security group ID
 SG_ID=$(aws ec2 describe-security-groups \
   --filters "Name=group-name,Values=ElasticMapReduce-master" \
   --query 'SecurityGroups[0].GroupId' --output text --region ap-northeast-2)
 
-# SSH 규칙 추가
+# Add SSH rule
 aws ec2 authorize-security-group-ingress \
   --group-id $SG_ID --protocol tcp --port 22 \
   --cidr $MY_IP/32 --region ap-northeast-2
 
-# Jupyter 규칙 추가
+# Add Jupyter rule
 aws ec2 authorize-security-group-ingress \
   --group-id $SG_ID --protocol tcp --port 8192 \
   --cidr $MY_IP/32 --region ap-northeast-2
 ```
 
-### 5단계: Jupyter Lab 접속
+### Step 5: Access Jupyter Lab
 
-**마스터 노드 IP 확인:**
+**Get master node IP:**
 ```bash
-# 방법 1: AWS CLI
+# Method 1: AWS CLI
 aws emr list-instances --cluster-id <cluster-id> \
   --instance-group-types MASTER \
   --query 'Instances[0].PublicIpAddress' --output text \
   --region ap-northeast-2
 
-# 방법 2: EMR 콘솔에서 Master public DNS 확인
+# Method 2: Check Master public DNS in EMR console
 
-# 방법 3: EC2 콘솔에서 MASTER 태그가 있는 인스턴스 확인
+# Method 3: Check instance with MASTER tag in EC2 console
 ```
 
-**접속 URL:** `http://<master-ip>:8192`
-- 비밀번호 없음 (토큰 인증 비활성화)
+**Access URL:** `http://<master-ip>:8192`
+- No password (token authentication disabled)
 
-## 주요 스크립트 설명
+## Key Script Descriptions
 
 ### bootstrap_python.sh
-Python 3.11 환경을 설정하고 필요한 패키지를 설치합니다.
+Sets up Python 3.11 environment and installs required packages.
 
 ```bash
-# Amazon Linux 2023에서는 dnf 사용
+# Use dnf on Amazon Linux 2023
 sudo dnf install -y python3.11 python3.11-pip python3.11-devel
 
-# 필수 패키지 설치
+# Install required packages
 sudo /usr/bin/python3.11 -m pip install \
   jupyterlab ipywidgets pandas matplotlib seaborn bokeh
 ```
 
 ### hail_build.sh
-Hail을 PyPI에서 설치하고 Java 11을 설정합니다.
+Installs Hail from PyPI and configures Java 11.
 
-핵심 작업:
-1. Java 11 환경 변수 설정
-2. Spark의 Java 설정을 Java 17 → Java 11로 변경
-3. PyPI에서 Hail 설치: `pip install hail`
+Key tasks:
+1. Set Java 11 environment variables
+2. Change Spark's Java setting from Java 17 → Java 11
+3. Install Hail from PyPI: `pip install hail`
 
 ### jupyter_run.sh
-Jupyter Lab을 시작하고 Spark 연동을 설정합니다.
+Starts Jupyter Lab and configures Spark integration.
 
-핵심 설정:
+Key settings:
 ```bash
-# Python 버전 지정
+# Specify Python version
 export PYSPARK_PYTHON=/usr/bin/python3.11
 export PYSPARK_DRIVER_PYTHON=/usr/bin/python3.11
 
-# Java 11 설정
+# Java 11 setting
 export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto.x86_64
 
-# Hail JAR 경로 (PyPI 설치 우선)
+# Hail JAR path (PyPI installation priority)
 HAIL_JAR=$(find /usr/local/lib/python3.11/site-packages/hail \
   -name "hail-all-spark.jar" 2>/dev/null | head -1)
 ```
 
 ### install_hail.sh
-마스터 노드에서 전체 설치 과정을 오케스트레이션합니다.
+Orchestrates the entire installation process on the master node.
 
-## 문제 해결
+## Troubleshooting
 
 ### 1. ClassNotFoundException: is.hail.kryo.HailKryoRegistrator
 
-**원인:** Hail JAR 파일을 찾지 못함 또는 버전 불일치
+**Cause:** Hail JAR file not found or version mismatch
 
-**해결:**
+**Solution:**
 ```bash
-# Hail JAR 위치 확인
+# Check Hail JAR location
 find /usr/local/lib/python3.11/site-packages/hail -name "*.jar"
 
-# Jupyter 재시작
+# Restart Jupyter
 cd /opt/hail-on-AWS-spot-instances/src && ./jupyter_run.sh
 ```
 
 ### 2. UnsupportedClassVersionError
 
-**원인:** Java 17 사용 중 (Hail은 Java 11 필요)
+**Cause:** Using Java 17 (Hail requires Java 11)
 
-**해결:**
+**Solution:**
 ```bash
-# Java 버전 확인
+# Check Java version
 java -version
 
-# Spark 설정 파일 확인
+# Check Spark configuration file
 cat /etc/spark/conf/spark-env.sh | grep JAVA
 
-# Java 11로 변경
+# Change to Java 11
 export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto.x86_64
 ```
 
 ### 3. ModuleNotFoundError: No module named 'hail'
 
-**원인:** 잘못된 Python 버전 사용
+**Cause:** Using wrong Python version
 
-**해결:**
+**Solution:**
 ```bash
-# 올바른 Python 사용
+# Use correct Python
 python3.11 -c "import hail as hl; print(hl.__version__)"
 
-# Jupyter에서는 Python 3.11 커널 사용 확인
+# Verify Python 3.11 kernel in Jupyter
 ```
 
 ### 4. bokeh AttributeError
 
-**원인:** bokeh 3.x와의 호환성 문제
+**Cause:** Compatibility issue with bokeh 3.x
 
-**해결:** plotting.py에서 import 문 수정
+**Solution:** Modify import statement in plotting.py
 ```python
 # Before
 from bokeh.plotting import figure, show, output_file
@@ -265,31 +265,31 @@ from bokeh.plotting import figure, show, output_file
 from bokeh.plotting import figure, show, output_file, Figure
 ```
 
-### 5. EMR 클러스터 생성 실패
+### 5. EMR Cluster Creation Failure
 
-**원인:** IAM 역할 부재 또는 권한 부족
+**Cause:** Missing IAM roles or insufficient permissions
 
-**해결:**
+**Solution:**
 ```bash
-# 기본 역할 생성
+# Create default roles
 aws emr create-default-roles
 
-# 역할 확인
+# Verify roles
 aws iam get-role --role-name EMR_DefaultRole
 aws iam get-role --role-name EMR_EC2_DefaultRole
 ```
 
-## IAM 역할 및 정책
+## IAM Roles and Policies
 
-### EMR 서비스 역할
+### EMR Service Roles
 
-| 역할 | 정책 | 용도 |
-|------|------|------|
-| EMR_DefaultRole | AmazonEMRServicePolicy_v2 | EMR 서비스 역할 |
-| EMR_EC2_DefaultRole | AmazonElasticMapReduceforEC2Role | EC2 인스턴스 역할 |
-| EMR_AutoScaling_DefaultRole | AmazonElasticMapReduceforAutoScalingRole | Auto Scaling 역할 |
+| Role | Policy | Purpose |
+|------|--------|---------|
+| EMR_DefaultRole | AmazonEMRServicePolicy_v2 | EMR service role |
+| EMR_EC2_DefaultRole | AmazonElasticMapReduceforEC2Role | EC2 instance role |
+| EMR_AutoScaling_DefaultRole | AmazonElasticMapReduceforAutoScalingRole | Auto Scaling role |
 
-### IAM 사용자 최소 권한
+### Minimum IAM User Permissions
 
 ```json
 {
@@ -338,9 +338,9 @@ aws iam get-role --role-name EMR_EC2_DefaultRole
 }
 ```
 
-## S3 부트스트랩 스크립트 위치
+## S3 Bootstrap Script Locations
 
-현재 배포에 사용되는 스크립트:
+Scripts used in current deployment:
 ```
 s3://hail-test-bucket-ap-northeast-2/hail_bootstrap/
 ├── bootstrap_python.sh
@@ -349,83 +349,83 @@ s3://hail-test-bucket-ap-northeast-2/hail_bootstrap/
 └── jupyter_run.sh
 ```
 
-## 유용한 명령어
+## Useful Commands
 
 ```bash
-# 클러스터 상태 확인
+# Check cluster status
 aws emr describe-cluster --cluster-id <cluster-id> --region <region>
 
-# 설치 로그 확인 (마스터 노드에서)
+# Check installation logs (on master node)
 tail -f /tmp/cloudcreation_log.out
 
-# Hail 버전 확인
+# Check Hail version
 python3.11 -c "import hail as hl; print(hl.__version__)"
 
-# Jupyter 재시작
+# Restart Jupyter
 cd /opt/hail-on-AWS-spot-instances/src && ./jupyter_run.sh
 
-# 클러스터 종료
+# Terminate cluster
 aws emr terminate-clusters --cluster-ids <cluster-id> --region <region>
 ```
 
-## 버전 호환성 참고사항
+## Version Compatibility Notes
 
-### Python 패키지 의존성 (Hail 0.2.137+)
+### Python Package Dependencies (Hail 0.2.137+)
 
-Hail 0.2.137은 다음 버전의 Python 패키지를 요구합니다:
+Hail 0.2.137 requires the following Python package versions:
 
-| 패키지 | 요구 버전 | 비고 |
-|--------|----------|------|
-| NumPy | ≥2.0, <3.0 | 버전 1.x는 지원하지 않음 |
-| pandas | ≥2.0, <3.0 | |
+| Package | Required Version | Notes |
+|---------|-----------------|-------|
+| NumPy | >=2.0, <3.0 | Version 1.x not supported |
+| pandas | >=2.0, <3.0 | |
 | scipy | >1.13, <2.0 | |
-| bokeh | ≥3.0, <3.5 | 시각화 라이브러리 |
-| PySpark | ≥3.5.0, <3.6 | EMR 7.5.0에 포함 |
+| bokeh | >=3.0, <3.5 | Visualization library |
+| PySpark | >=3.5.0, <3.6 | Included in EMR 7.5.0 |
 
-이 의존성들은 PyPI를 통해 Hail을 설치할 때 자동으로 해결됩니다.
+These dependencies are automatically resolved when installing Hail via PyPI.
 
 ### Deprecated API (0.2.137+)
 
-Hail 0.2.137부터 `hl.hadoop_*` 함수들이 deprecated 되었습니다. `hailtop.fs`를 대신 사용하세요:
+Starting from Hail 0.2.137, `hl.hadoop_*` functions are deprecated. Use `hailtop.fs` instead:
 
 ```python
-# Deprecated (경고 메시지 출력됨)
+# Deprecated (prints warning message)
 import hail as hl
 hl.hadoop_ls('s3://bucket/')
 hl.hadoop_copy('source', 'dest')
 hl.hadoop_exists('s3://path')
 
-# 권장 대체 방법
+# Recommended alternative
 import hailtop.fs as hfs
 hfs.ls('s3://bucket/')
 hfs.copy('source', 'dest')
 hfs.exists('s3://path')
 ```
 
-### 파일 형식 호환성
+### File Format Compatibility
 
-- **Hail 0.2.119+**는 기본적으로 **Zstandard** 압축 사용 (파일 크기 ~20% 감소)
-- 네이티브 파일 형식 버전: **1.7.0**
-- Hail 0.2.119+로 작성된 Table/MatrixTable은 **이전 버전에서 읽을 수 없습니다**
+- **Hail 0.2.119+** uses **Zstandard** compression by default (~20% file size reduction)
+- Native file format version: **1.7.0**
+- Tables/MatrixTables written with Hail 0.2.119+ **cannot be read by earlier versions**
 
-이전 버전 사용자와 데이터를 공유해야 하는 경우 VCF 또는 다른 포터블 형식으로 내보내기를 권장합니다.
+If you need to share data with users of earlier versions, export to VCF or other portable formats.
 
-### 버전 히스토리 요약
+### Version History Summary
 
-| 버전 | 주요 변경사항 |
-|------|--------------|
-| 0.2.137 | `hl.hadoop_*` deprecated, gamma 분포 함수 추가 |
-| 0.2.136 | 기본 Python 버전 3.11로 업그레이드, Python ≤3.9 지원 중단 |
-| 0.2.131 | Spark 3.5.0, Java 11 공식 지원 |
-| 0.2.119 | Zstandard 압축 기본값으로 변경, 파일 형식 1.7.0 |
+| Version | Major Changes |
+|---------|---------------|
+| 0.2.137 | `hl.hadoop_*` deprecated, gamma distribution functions added |
+| 0.2.136 | Default Python version upgraded to 3.11, Python <=3.9 support dropped |
+| 0.2.131 | Spark 3.5.0, Java 11 official support |
+| 0.2.119 | Zstandard compression default, file format 1.7.0 |
 
-## 참고 자료
+## References
 
-- [Hail 공식 문서](https://hail.is/docs/0.2/index.html)
+- [Hail Official Documentation](https://hail.is/docs/0.2/index.html)
 - [Hail Change Log](https://hail.is/docs/0.2/change_log.html)
-- [AWS EMR 문서](https://docs.aws.amazon.com/emr/latest/ManagementGuide/)
-- [Spark 3.5 문서](https://spark.apache.org/docs/3.5.0/)
+- [AWS EMR Documentation](https://docs.aws.amazon.com/emr/latest/ManagementGuide/)
+- [Spark 3.5 Documentation](https://spark.apache.org/docs/3.5.0/)
 
 ---
 
-*이 문서는 2025년 1월 실제 EMR 7.5.0 클러스터 배포 및 테스트 결과를 바탕으로 작성되었습니다.*
+*This document is based on actual EMR 7.5.0 cluster deployment and testing results from January 2025.*
