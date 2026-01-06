@@ -2,6 +2,14 @@
 
 # Hail Installation Script for EMR 7.x (Amazon Linux 2023)
 # Installs Hail 0.2.137+ from PyPI with Spark 3.5.x and Java 11
+#
+# IMPORTANT: Hail 0.2.137+ Changes:
+#   - hl.hadoop_* functions are DEPRECATED, use hailtop.fs instead
+#   - Requires Java 11 (not Java 17)
+#   - Requires Python >=3.10
+#   - Uses Zstandard compression for Table/MatrixTable (file format 1.7.0)
+#
+# See: https://hail.is/docs/0.2/change_log.html
 
 # Error message
 error_msg ()

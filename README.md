@@ -402,6 +402,48 @@ cd /opt/hail-on-AWS-spot-instances/src && ./jupyter_run.sh
 
 **Important:** Hail is installed on Python 3.11, not the system Python 3.9. Always use `python3.11` when running Hail commands directly.
 
+## Version Compatibility Notes
+
+### Python Dependencies (Hail 0.2.137+)
+
+Hail 0.2.137 requires specific versions of key Python packages:
+
+| Package | Required Version |
+|---------|------------------|
+| NumPy | ≥2.0, <3.0 |
+| pandas | ≥2.0, <3.0 |
+| scipy | >1.13, <2.0 |
+| bokeh | ≥3.0, <3.5 |
+| PySpark | ≥3.5.0, <3.6 |
+
+These dependencies are automatically installed when installing Hail via PyPI (`pip install hail`).
+
+### Deprecated APIs (0.2.137+)
+
+Starting from Hail 0.2.137, `hl.hadoop_*` functions are deprecated. Use `hailtop.fs` instead:
+
+```python
+# Deprecated (will show warnings)
+import hail as hl
+hl.hadoop_ls('s3://bucket/')
+hl.hadoop_copy('source', 'dest')
+hl.hadoop_exists('s3://path')
+
+# Recommended replacement
+import hailtop.fs as hfs
+hfs.ls('s3://bucket/')
+hfs.copy('source', 'dest')
+hfs.exists('s3://path')
+```
+
+### File Format Compatibility
+
+- **Hail 0.2.119+** uses **Zstandard** compression by default (~20% smaller files)
+- Native file format version: **1.7.0**
+- Tables/MatrixTables written with Hail 0.2.119+ **cannot be read by earlier versions**
+
+If you need to share data with users on older Hail versions, consider exporting to VCF or other portable formats.
+
 ## Resources
 
 - [Hail Documentation](https://hail.is/docs/0.2/index.html)

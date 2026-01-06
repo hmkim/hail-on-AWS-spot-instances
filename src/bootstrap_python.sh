@@ -3,6 +3,17 @@ set -e
 
 # Bootstrap script for EMR 7.x (Amazon Linux 2023)
 # Installs Python 3.10+ and required packages for Hail
+#
+# Hail 0.2.137+ requires:
+#   - Python >=3.10
+#   - NumPy >=2.0, <3.0
+#   - pandas >=2.0, <3.0
+#   - scipy >1.13, <2.0
+#   - bokeh >=3.0, <3.5
+#   - PySpark >=3.5.0, <3.6
+#
+# These dependencies are automatically resolved when installing Hail via PyPI.
+# See: https://hail.is/docs/0.2/change_log.html
 
 export PATH=$PATH:/usr/local/bin
 

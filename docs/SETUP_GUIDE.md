@@ -368,9 +368,61 @@ cd /opt/hail-on-AWS-spot-instances/src && ./jupyter_run.sh
 aws emr terminate-clusters --cluster-ids <cluster-id> --region <region>
 ```
 
+## 버전 호환성 참고사항
+
+### Python 패키지 의존성 (Hail 0.2.137+)
+
+Hail 0.2.137은 다음 버전의 Python 패키지를 요구합니다:
+
+| 패키지 | 요구 버전 | 비고 |
+|--------|----------|------|
+| NumPy | ≥2.0, <3.0 | 버전 1.x는 지원하지 않음 |
+| pandas | ≥2.0, <3.0 | |
+| scipy | >1.13, <2.0 | |
+| bokeh | ≥3.0, <3.5 | 시각화 라이브러리 |
+| PySpark | ≥3.5.0, <3.6 | EMR 7.5.0에 포함 |
+
+이 의존성들은 PyPI를 통해 Hail을 설치할 때 자동으로 해결됩니다.
+
+### Deprecated API (0.2.137+)
+
+Hail 0.2.137부터 `hl.hadoop_*` 함수들이 deprecated 되었습니다. `hailtop.fs`를 대신 사용하세요:
+
+```python
+# Deprecated (경고 메시지 출력됨)
+import hail as hl
+hl.hadoop_ls('s3://bucket/')
+hl.hadoop_copy('source', 'dest')
+hl.hadoop_exists('s3://path')
+
+# 권장 대체 방법
+import hailtop.fs as hfs
+hfs.ls('s3://bucket/')
+hfs.copy('source', 'dest')
+hfs.exists('s3://path')
+```
+
+### 파일 형식 호환성
+
+- **Hail 0.2.119+**는 기본적으로 **Zstandard** 압축 사용 (파일 크기 ~20% 감소)
+- 네이티브 파일 형식 버전: **1.7.0**
+- Hail 0.2.119+로 작성된 Table/MatrixTable은 **이전 버전에서 읽을 수 없습니다**
+
+이전 버전 사용자와 데이터를 공유해야 하는 경우 VCF 또는 다른 포터블 형식으로 내보내기를 권장합니다.
+
+### 버전 히스토리 요약
+
+| 버전 | 주요 변경사항 |
+|------|--------------|
+| 0.2.137 | `hl.hadoop_*` deprecated, gamma 분포 함수 추가 |
+| 0.2.136 | 기본 Python 버전 3.11로 업그레이드, Python ≤3.9 지원 중단 |
+| 0.2.131 | Spark 3.5.0, Java 11 공식 지원 |
+| 0.2.119 | Zstandard 압축 기본값으로 변경, 파일 형식 1.7.0 |
+
 ## 참고 자료
 
 - [Hail 공식 문서](https://hail.is/docs/0.2/index.html)
+- [Hail Change Log](https://hail.is/docs/0.2/change_log.html)
 - [AWS EMR 문서](https://docs.aws.amazon.com/emr/latest/ManagementGuide/)
 - [Spark 3.5 문서](https://spark.apache.org/docs/3.5.0/)
 
