@@ -1,13 +1,13 @@
-# Hail on AWS EMR 7.5.0 Comprehensive Setup Guide
+# Hail on AWS EMR 7.12.0 Comprehensive Setup Guide
 
-This document covers the complete process and key considerations for setting up Hail 0.2.137 on AWS EMR 7.5.0.
+This document covers the complete process and key considerations for setting up Hail 0.2.137 on AWS EMR 7.12.0.
 
 ## Version Information
 
 | Component | Version | Notes |
 |-----------|---------|-------|
-| EMR | 7.5.0 | Based on Amazon Linux 2023 |
-| Spark | 3.5.x | Included in EMR 7.5.0 |
+| EMR | 7.12.0 | Based on Amazon Linux 2023 |
+| Spark | 3.5.x | Included in EMR 7.12.0 |
 | Hail | 0.2.137+ | Installed from PyPI |
 | Python | 3.11 | Dedicated for Hail (separate from system Python 3.9) |
 | Java | 11 (Amazon Corretto) | Hail requirement |
@@ -33,7 +33,7 @@ sudo sed -i 's|export JAVA_HOME=\$JAVA17_HOME|export JAVA_HOME=\$JAVA11_HOME|g' 
 
 ### 2. xlarge or Larger Instance Types Required
 
-EMR 7.5.0 only supports xlarge or larger instance types.
+EMR 7.12.0 only supports xlarge or larger instance types.
 
 | Role | Recommended Type | Notes |
 |------|-----------------|-------|
@@ -100,8 +100,12 @@ chmod 400 my-key.pem
 ```yaml
 config:
   EMR_CLUSTER_NAME: "my-hail-02-cluster"
-  EMR_RELEASE_LABEL: "emr-7.5.0"
-  REGION: "ap-northeast-2"
+  EMR_RELEASE_LABEL: "emr-7.12.0"
+  EC2_NAME_TAG: "my-hail-EMR"
+  OWNER_TAG: "emr-owner"
+  PROJECT_TAG: "my-project"
+  MICROSERVICE_TAG: "caris-poc"
+  REGION: "ap-southeast-1"
   MASTER_INSTANCE_TYPE: "m6i.xlarge"      # xlarge or larger required
   WORKER_INSTANCE_TYPE: "r6i.4xlarge"
   WORKER_COUNT: "4"
@@ -137,17 +141,17 @@ MY_IP=$(curl -s ifconfig.me)
 # Get security group ID
 SG_ID=$(aws ec2 describe-security-groups \
   --filters "Name=group-name,Values=ElasticMapReduce-master" \
-  --query 'SecurityGroups[0].GroupId' --output text --region ap-northeast-2)
+  --query 'SecurityGroups[0].GroupId' --output text --region ap-southeast-1)
 
 # Add SSH rule
 aws ec2 authorize-security-group-ingress \
   --group-id $SG_ID --protocol tcp --port 22 \
-  --cidr $MY_IP/32 --region ap-northeast-2
+  --cidr $MY_IP/32 --region ap-southeast-1
 
 # Add Jupyter rule
 aws ec2 authorize-security-group-ingress \
   --group-id $SG_ID --protocol tcp --port 8192 \
-  --cidr $MY_IP/32 --region ap-northeast-2
+  --cidr $MY_IP/32 --region ap-southeast-1
 ```
 
 ### Step 5: Access Jupyter Lab
@@ -158,7 +162,7 @@ aws ec2 authorize-security-group-ingress \
 aws emr list-instances --cluster-id <cluster-id> \
   --instance-group-types MASTER \
   --query 'Instances[0].PublicIpAddress' --output text \
-  --region ap-northeast-2
+  --region ap-southeast-1
 
 # Method 2: Check Master public DNS in EMR console
 
@@ -342,7 +346,7 @@ aws iam get-role --role-name EMR_EC2_DefaultRole
 
 Scripts used in current deployment:
 ```
-s3://hail-test-bucket-ap-northeast-2/hail_bootstrap/
+s3://hail-test-bucket-ap-southeast-1/hail_bootstrap/
 ├── bootstrap_python.sh
 ├── hail_build.sh
 ├── install_hail.sh
@@ -380,7 +384,7 @@ Hail 0.2.137 requires the following Python package versions:
 | pandas | >=2.0, <3.0 | |
 | scipy | >1.13, <2.0 | |
 | bokeh | >=3.0, <3.5 | Visualization library |
-| PySpark | >=3.5.0, <3.6 | Included in EMR 7.5.0 |
+| PySpark | >=3.5.0, <3.6 | Included in EMR 7.12.0 |
 
 These dependencies are automatically resolved when installing Hail via PyPI.
 
@@ -428,4 +432,4 @@ If you need to share data with users of earlier versions, export to VCF or other
 
 ---
 
-*This document is based on actual EMR 7.5.0 cluster deployment and testing results from January 2025.*
+*This document is based on actual EMR 7.12.0 cluster deployment and testing results from March 2026.*

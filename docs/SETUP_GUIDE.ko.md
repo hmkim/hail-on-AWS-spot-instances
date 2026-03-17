@@ -1,13 +1,13 @@
-# Hail on AWS EMR 7.5.0 종합 설정 가이드
+# Hail on AWS EMR 7.12.0 종합 설정 가이드
 
-이 문서는 AWS EMR 7.5.0에서 Hail 0.2.137을 설정하는 전체 과정과 주요 고려사항을 정리합니다.
+이 문서는 AWS EMR 7.12.0에서 Hail 0.2.137을 설정하는 전체 과정과 주요 고려사항을 정리합니다.
 
 ## 버전 정보
 
 | 컴포넌트 | 버전 | 비고 |
 |---------|------|------|
-| EMR | 7.5.0 | Amazon Linux 2023 기반 |
-| Spark | 3.5.x | EMR 7.5.0에 포함 |
+| EMR | 7.12.0 | Amazon Linux 2023 기반 |
+| Spark | 3.5.x | EMR 7.12.0에 포함 |
 | Hail | 0.2.137+ | PyPI에서 설치 |
 | Python | 3.11 | Hail 전용 (시스템 Python 3.9와 별도) |
 | Java | 11 (Amazon Corretto) | Hail 요구사항 |
@@ -33,7 +33,7 @@ sudo sed -i 's|export JAVA_HOME=\$JAVA17_HOME|export JAVA_HOME=\$JAVA11_HOME|g' 
 
 ### 2. xlarge 이상 인스턴스 타입 필수
 
-EMR 7.5.0은 xlarge 이상의 인스턴스 타입만 지원합니다.
+EMR 7.12.0은 xlarge 이상의 인스턴스 타입만 지원합니다.
 
 | 역할 | 권장 타입 | 비고 |
 |------|----------|------|
@@ -100,8 +100,12 @@ chmod 400 my-key.pem
 ```yaml
 config:
   EMR_CLUSTER_NAME: "my-hail-02-cluster"
-  EMR_RELEASE_LABEL: "emr-7.5.0"
-  REGION: "ap-northeast-2"
+  EMR_RELEASE_LABEL: "emr-7.12.0"
+  EC2_NAME_TAG: "my-hail-EMR"
+  OWNER_TAG: "emr-owner"
+  PROJECT_TAG: "my-project"
+  MICROSERVICE_TAG: "caris-poc"
+  REGION: "ap-southeast-1"
   MASTER_INSTANCE_TYPE: "m6i.xlarge"      # xlarge 이상 필수
   WORKER_INSTANCE_TYPE: "r6i.4xlarge"
   WORKER_COUNT: "4"
@@ -137,17 +141,17 @@ MY_IP=$(curl -s ifconfig.me)
 # 보안 그룹 ID 확인
 SG_ID=$(aws ec2 describe-security-groups \
   --filters "Name=group-name,Values=ElasticMapReduce-master" \
-  --query 'SecurityGroups[0].GroupId' --output text --region ap-northeast-2)
+  --query 'SecurityGroups[0].GroupId' --output text --region ap-southeast-1)
 
 # SSH 규칙 추가
 aws ec2 authorize-security-group-ingress \
   --group-id $SG_ID --protocol tcp --port 22 \
-  --cidr $MY_IP/32 --region ap-northeast-2
+  --cidr $MY_IP/32 --region ap-southeast-1
 
 # Jupyter 규칙 추가
 aws ec2 authorize-security-group-ingress \
   --group-id $SG_ID --protocol tcp --port 8192 \
-  --cidr $MY_IP/32 --region ap-northeast-2
+  --cidr $MY_IP/32 --region ap-southeast-1
 ```
 
 ### 5단계: Jupyter Lab 접속
@@ -158,7 +162,7 @@ aws ec2 authorize-security-group-ingress \
 aws emr list-instances --cluster-id <cluster-id> \
   --instance-group-types MASTER \
   --query 'Instances[0].PublicIpAddress' --output text \
-  --region ap-northeast-2
+  --region ap-southeast-1
 
 # 방법 2: EMR 콘솔에서 Master public DNS 확인
 
@@ -342,7 +346,7 @@ aws iam get-role --role-name EMR_EC2_DefaultRole
 
 현재 배포에 사용되는 스크립트:
 ```
-s3://hail-test-bucket-ap-northeast-2/hail_bootstrap/
+s3://hail-test-bucket-ap-southeast-1/hail_bootstrap/
 ├── bootstrap_python.sh
 ├── hail_build.sh
 ├── install_hail.sh
@@ -380,7 +384,7 @@ Hail 0.2.137은 다음 버전의 Python 패키지를 요구합니다:
 | pandas | ≥2.0, <3.0 | |
 | scipy | >1.13, <2.0 | |
 | bokeh | ≥3.0, <3.5 | 시각화 라이브러리 |
-| PySpark | ≥3.5.0, <3.6 | EMR 7.5.0에 포함 |
+| PySpark | ≥3.5.0, <3.6 | EMR 7.12.0에 포함 |
 
 이 의존성들은 PyPI를 통해 Hail을 설치할 때 자동으로 해결됩니다.
 
@@ -428,4 +432,4 @@ hfs.exists('s3://path')
 
 ---
 
-*이 문서는 2025년 1월 실제 EMR 7.5.0 클러스터 배포 및 테스트 결과를 바탕으로 작성되었습니다.*
+*이 문서는 2026년 3월 실제 EMR 7.12.0 클러스터 배포 및 테스트 결과를 바탕으로 작성되었습니다.*

@@ -1,12 +1,12 @@
 # Hail on Amazon EMR: CloudFormation Tool with Spot Instances
 
-This CloudFormation tool (macOS and Linux compatible) creates an **EMR 7.5.0** cluster with **Spark 3.5.x**, using [spot instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html) for cost-effective cluster deployment. Once your cluster is up and running, it will have the latest [**Hail 0.2**](https://www.hail.is) version and **Jupyter Lab** installed.
+This CloudFormation tool (macOS and Linux compatible) creates an **EMR 7.12.0** cluster with **Spark 3.5.x**, using [spot instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html) for cost-effective cluster deployment. Once your cluster is up and running, it will have the latest [**Hail 0.2**](https://www.hail.is) version and **Jupyter Lab** installed.
 
 ## Version Information
 
 | Component | Version |
 |-----------|---------|
-| EMR | 7.5.0 |
+| EMR | 7.12.0 |
 | Spark | 3.5.x |
 | Hail | 0.2.137+ (latest) |
 | Python | 3.11 |
@@ -202,11 +202,12 @@ Edit the configuration file `config_EMR_spot.yaml` with your preferred text edit
 ```yaml
 config:
   EMR_CLUSTER_NAME: "my-hail-02-cluster"    # Name for your EMR cluster
-  EMR_RELEASE_LABEL: "emr-7.5.0"            # EMR release version
+  EMR_RELEASE_LABEL: "emr-7.12.0"            # EMR release version
   EC2_NAME_TAG: "my-hail-EMR"               # Tag for EC2 instances
   OWNER_TAG: "emr-owner"                    # Owner tag
   PROJECT_TAG: "my-project"                 # Project tag
-  REGION: "us-east-1"                       # AWS region
+  MICROSERVICE_TAG: "caris-poc"             # Microservice tag
+  REGION: "ap-southeast-1"                  # AWS region
   MASTER_INSTANCE_TYPE: "m6i.xlarge"        # Master node instance type (xlarge minimum)
   WORKER_INSTANCE_TYPE: "r6i.4xlarge"       # Worker node instance type
   WORKER_COUNT: "4"                         # Number of worker nodes
@@ -228,7 +229,7 @@ config:
 
 **Recommended instance types for EMR 7.x:**
 
-> **Important:** EMR 7.5.0 requires **xlarge or larger** instance types. Smaller instance types (large, medium, small) are not supported.
+> **Important:** EMR 7.12.0 requires **xlarge or larger** instance types. Smaller instance types (large, medium, small) are not supported.
 
 | Role | Recommended Types | Notes |
 |------|-------------------|-------|
@@ -350,7 +351,7 @@ Detailed documentation is available in the `docs/` directory:
 
 | Document | Description |
 |----------|-------------|
-| [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | Comprehensive setup guide for EMR 7.5.0 with Hail |
+| [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | Comprehensive setup guide for EMR 7.12.0 with Hail |
 | [SETUP_GUIDE.ko.md](docs/SETUP_GUIDE.ko.md) | Setup guide (Korean version) |
 | [COST_ANALYSIS.md](docs/COST_ANALYSIS.md) | Spot vs On-Demand cost analysis report |
 | [COST_ANALYSIS.ko.md](docs/COST_ANALYSIS.ko.md) | Cost analysis report (Korean version) |

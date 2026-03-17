@@ -20,7 +20,7 @@ sh cloudformation_hail_spot.sh
 
 ## Architecture
 
-**Technology Stack**: Python 3.11, Bash, AWS EMR 7.5.0, Spark 3.5.x, Java 11, Jupyter Lab, Amazon Linux 2023
+**Technology Stack**: Python 3.11, Bash, AWS EMR 7.12.0, Spark 3.5.x, Java 11, Jupyter Lab, Amazon Linux 2023
 
 **Deployment Flow**:
 1. `cloudformation_hail_spot.sh` - Entry point, calls run.sh
@@ -42,7 +42,7 @@ sh cloudformation_hail_spot.sh
 ### EMR Cluster Configuration (`src/config_EMR_spot.yaml`)
 
 Key parameters:
-- `EMR_RELEASE_LABEL` - EMR version (default: emr-7.5.0)
+- `EMR_RELEASE_LABEL` - EMR version (default: emr-7.12.0)
 - `EMR_CLUSTER_NAME`, `REGION`, `SUBNET_ID` - Cluster identification
 - `MASTER_INSTANCE_TYPE`, `WORKER_INSTANCE_TYPE` - EC2 instance types (m6i/r6i generation recommended)
 - `WORKER_COUNT`, `WORKER_BID_PRICE` - Spot instance configuration
@@ -53,7 +53,7 @@ Key parameters:
 
 ### Version Requirements
 
-- **EMR**: 7.5.0 or later (provides Spark 3.5.x)
+- **EMR**: 7.12.0 or later (provides Spark 3.5.x)
 - **Hail**: 0.2.137+ (requires Spark 3.5.x, Python 3.10+, Java 11)
 - **Python**: 3.10 or later
 - **Java**: 11 (Amazon Corretto)

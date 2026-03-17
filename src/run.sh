@@ -19,7 +19,7 @@ if [ -z "$CREDENTIALS" ]; then
 	echo ""
 	echo "AWS Access Key ID [None]: ANEXAMPLEKEYID"
 	echo "AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-	echo "Default region name [None]: us-east-1"
+	echo "Default region name [None]: ap-southeast-1"
 	echo "Default output format [None]: json"
 	echo ""
 	aws configure
