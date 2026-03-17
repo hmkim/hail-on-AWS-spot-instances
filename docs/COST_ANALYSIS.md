@@ -3,8 +3,8 @@
 ## Execution Environment
 
 - **Date**: 2026-01-06
-- **Region**: ap-northeast-2 (Seoul)
-- **EMR Version**: emr-7.5.0
+- **Region**: ap-southeast-1 (Singapore)
+- **EMR Version**: emr-7.12.0
 - **Hail Version**: 0.2.137
 - **Spark Version**: 3.5.x
 
@@ -21,10 +21,10 @@
 
 | Cluster | ID | Master DNS | Status |
 |---------|-----|-----------|--------|
-| Spot | j-1A9KKKPR8ZWW8 | ec2-3-39-195-48.ap-northeast-2.compute.amazonaws.com | TERMINATED |
-| On-Demand | j-1PK1W0OYZJWAQ | ec2-13-124-241-105.ap-northeast-2.compute.amazonaws.com | TERMINATED |
+| Spot | j-1A9KKKPR8ZWW8 | ec2-3-39-195-48.ap-southeast-1.compute.amazonaws.com | TERMINATED |
+| On-Demand | j-1PK1W0OYZJWAQ | ec2-13-124-241-105.ap-southeast-1.compute.amazonaws.com | TERMINATED |
 
-## Pricing Information (ap-northeast-2, as of 2026-01-06)
+## Pricing Information (ap-southeast-1, as of 2026-03-17)
 
 ### On-Demand Pricing
 
@@ -142,8 +142,8 @@ Terminate clusters after testing to save costs:
 export AWS_PROFILE=664263524008_AdministratorAccess
 
 # Terminate Spot cluster
-aws emr terminate-clusters --cluster-ids j-1A9KKKPR8ZWW8 --region ap-northeast-2
+aws emr terminate-clusters --cluster-ids j-1A9KKKPR8ZWW8 --region ap-southeast-1
 
 # Terminate On-Demand cluster
-aws emr terminate-clusters --cluster-ids j-1PK1W0OYZJWAQ --region ap-northeast-2
+aws emr terminate-clusters --cluster-ids j-1PK1W0OYZJWAQ --region ap-southeast-1
 ```

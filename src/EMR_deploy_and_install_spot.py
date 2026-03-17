@@ -50,8 +50,8 @@ with open(config_file) as f:
 
 config = c['config']
 
-# Get EMR release label from config, default to emr-7.5.0
-EMR_RELEASE_LABEL = config.get('EMR_RELEASE_LABEL', 'emr-7.5.0')
+# Get EMR release label from config, default to emr-7.12.0
+EMR_RELEASE_LABEL = config.get('EMR_RELEASE_LABEL', 'emr-7.12.0')
 
 # Build the EMR create-cluster command for EMR 7.x
 # EMR 7.x uses Amazon Linux 2023 and includes Spark 3.5.x
@@ -140,14 +140,14 @@ configurations = [
 ]
 
 # Tags
-tags = f"project={config['PROJECT_TAG']} Owner={config['OWNER_TAG']} Name={config['EC2_NAME_TAG']}"
+tags = f"project={config['PROJECT_TAG']} Owner={config['OWNER_TAG']} Name={config['EC2_NAME_TAG']} Microservice={config.get('MICROSERVICE_TAG', '')}"
 
 # Build AWS CLI command
 # Note: For EMR 7.x, bootstrap scripts need to be updated for Amazon Linux 2023
 command = (
     f"aws emr create-cluster "
     f"--applications Name=Hadoop Name=Spark Name=JupyterEnterpriseGateway "
-    f"--tags 'project={config['PROJECT_TAG']}' 'Owner={config['OWNER_TAG']}' 'Name={config['EC2_NAME_TAG']}' "
+    f"--tags 'project={config['PROJECT_TAG']}' 'Owner={config['OWNER_TAG']}' 'Name={config['EC2_NAME_TAG']}' 'Microservice={config.get('MICROSERVICE_TAG', '')}' "
     f"--ec2-attributes '{json.dumps(ec2_attributes)}' "
     f"--service-role EMR_DefaultRole "
     f"--release-label {EMR_RELEASE_LABEL} "

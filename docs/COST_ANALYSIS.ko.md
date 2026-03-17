@@ -3,8 +3,8 @@
 ## 실행 환경
 
 - **날짜**: 2026-01-06
-- **리전**: ap-northeast-2 (서울)
-- **EMR 버전**: emr-7.5.0
+- **리전**: ap-southeast-1 (싱가포르)
+- **EMR 버전**: emr-7.12.0
 - **Hail 버전**: 0.2.137
 - **Spark 버전**: 3.5.x
 
@@ -21,10 +21,10 @@
 
 | 클러스터 | ID | Master DNS | 상태 |
 |---------|-----|-----------|------|
-| Spot | j-1A9KKKPR8ZWW8 | ec2-3-39-195-48.ap-northeast-2.compute.amazonaws.com | RUNNING |
-| On-Demand | j-1PK1W0OYZJWAQ | ec2-13-124-241-105.ap-northeast-2.compute.amazonaws.com | RUNNING |
+| Spot | j-1A9KKKPR8ZWW8 | ec2-3-39-195-48.ap-southeast-1.compute.amazonaws.com | RUNNING |
+| On-Demand | j-1PK1W0OYZJWAQ | ec2-13-124-241-105.ap-southeast-1.compute.amazonaws.com | RUNNING |
 
-## 가격 정보 (ap-northeast-2, 2026-01-06 기준)
+## 가격 정보 (ap-southeast-1, 2026-03-17 기준)
 
 ### On-Demand 가격
 
@@ -142,8 +142,8 @@ Spot 인스턴스를 사용하면 **약 60%의 비용 절감**이 가능합니�
 export AWS_PROFILE=664263524008_AdministratorAccess
 
 # Spot 클러스터 종료
-aws emr terminate-clusters --cluster-ids j-1A9KKKPR8ZWW8 --region ap-northeast-2
+aws emr terminate-clusters --cluster-ids j-1A9KKKPR8ZWW8 --region ap-southeast-1
 
 # On-Demand 클러스터 종료
-aws emr terminate-clusters --cluster-ids j-1PK1W0OYZJWAQ --region ap-northeast-2
+aws emr terminate-clusters --cluster-ids j-1PK1W0OYZJWAQ --region ap-southeast-1
 ```
